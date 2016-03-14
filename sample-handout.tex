@@ -1,0 +1,253 @@
+\documentclass{tufte-handout}
+
+%\geometry{showframe}% for debugging purposes -- displays the margins
+
+\usepackage{amsmath}
+
+% Set up the images/graphics package
+\usepackage{graphicx}
+\setkeys{Gin}{width=\linewidth,totalheight=\textheight,keepaspectratio}
+\graphicspath{{graphics/}}
+
+\title{Creating Petri Nets from Procedural Models}
+\author{Tom Wallis\\2025138w\\tom@tomwallis.net}
+\date{11 March 2016}  % if the \date{} command is left out, the current date will be used
+
+% The following package makes prettier tables.  We're all about the bling!
+\usepackage{booktabs}
+
+% The units package provides nice, non-stacked fractions and better spacing
+% for units.
+\usepackage{units}
+
+% The fancyvrb package lets us customize the formatting of verbatim
+% environments.  We use a slightly smaller font.
+\usepackage{fancyvrb}
+\fvset{fontsize=\normalsize}
+
+% Small sections of multiple columns
+\usepackage{multicol}
+
+% Provides paragraphs of dummy text
+\usepackage{lipsum}
+
+\usepackage{minted}
+
+% These commands are used to pretty-print LaTeX commands
+\newcommand{\doccmd}[1]{\texttt{\textbackslash#1}}% command name -- adds backslash automatically
+\newcommand{\docopt}[1]{\ensuremath{\langle}\textrm{\textit{#1}}\ensuremath{\rangle}}% optional command argument
+\newcommand{\docarg}[1]{\textrm{\textit{#1}}}% (required) command argument
+\newenvironment{docspec}{\begin{quote}\noindent}{\end{quote}}% command specification environment
+\newcommand{\docenv}[1]{\textsf{#1}}% environment name
+\newcommand{\docpkg}[1]{\texttt{#1}}% package name
+\newcommand{\doccls}[1]{\texttt{#1}}% document class name
+\newcommand{\docclsopt}[1]{\texttt{#1}}% document class option name
+
+\begin{document}
+
+\maketitle% this prints the handout title, author, and date
+
+\begin{abstract}
+A Petri Net is a graph modelling approach to systems modelling. While originally developed for modelling chemical reactions, petri nets are useful for their mathematical representations and state-based approach to modelling. \par
+In this report, a procedural modelling system is detailed along with a tool to construct petri nets from these procedural models. 
+\end{abstract}
+\newpage
+
+
+\tableofcontents
+\newpage
+
+
+\section{Safety Critical States}
+\newthought{Safety Critical Systems }must be approached in many ways in order to ensure their safety. There are a few ways to do this: some methods create models from all of the possible failure states, while others attempt to simulate faults using stochastic methods or by creating a model mathematically and checking it against a set of rules or a logic. \par
+\subsection{Modelling systems}
+\newthought{The above three approaches }are each useful for their own reasons: \par
+\newthought{Failure State based models }employ some method of finding all possible error states that might affect a safety critical system. For example, a man cycling might fall off the bike if the weather is icy, \emph{or} if he has a hurt leg and it is windy. \par
+This method for examining faults is useful, because it can allow one to reason about breaking points using ordinary boolean logic and \emph{Fault Trees}. All failure states we know about can be modelled using fault trees, so long as we know their causes and can drill down on the system to a deep enough level.\marginnote{One potential problem with fault trees is that they won't detect the problems you're unaware of, as the models must be constructed out of your understanding of the ways the system might incur danger. Emergent phenomena can make this difficult to model well.} \par
+If we want to make a very large model, fault trees can get very complicated and difficult to reason with. They are also quite unapproachable in the most case, as they tend to be constructed using logic gates. Without much training or deep knowledge about logical systems engineering, it can be difficult to use this model to make a systems modelling approach where problems are noticeable at a glance. \par
+\newthought{Petri Nets }are an alternative approach that allow for a more graphical understanding of the system, making them more approachable. Petri Nets were originally developed for chemical process modelling, but are more and more widely used to describe systems modelling on a larger scale. \par
+Petri nets model systems as states the systems exist in and transformations those states might undergo.\marginnote{Discussions about the mathematical nature of a petri net aside, petri nets make understanding the flow of a system at a glance easier than any other method discussed here, and allow for simulating parts of the system that aren't being modelled for safety concerns, too.} The entire net can be represented as a directed graph, which means matrix operations and graph theory concepts can be applied to the system as an analysis on the system's safety. This also makes the system easy to represent in a computer, and to carry out complex analyses very easily. \par
+\newthought{A procedural model }of a safety critical system would create a program that simulates the behaviour of the system as far as we can tell. Then, provided the simulation is both useful and accurate, the model can be used to simulate failure states and observe the resulting fallout that occurs. \par
+\marginnote{Procedural models can be difficult to create, but very useful due to their potentially interactive nature.}A procedural model might be very complex to create, but comes with many benefits. When lots of money can be thrown into making sure a safety critical system is safe, or when safety needs to be demonstrated to people who do not demonstrate technological savvy, a procedural model can be very useful. However, it can suffer from expense, complexity, and the constructive problems that arise with things like fault trees. 
+
+\subsection{Combining petri nets and procedural models}
+\newthought{It is interesting to note} that Fass et. al.\cite{Fass2016} discuss the use of Petri Nets rather than attack trees, to model cyber-physical attacks on smart grids. An attack tree is closer to a high-level fault tree than a petri net, which makes this approach interesting. If one can be substituted for the other, might we gain the benefits of a Petri Net while retaining the benefits of a higher level abstraction like an attack tree or fault tree. \par
+What if we could do this while also retaining the benefits of a procedural approach to modelling? Would it be possible to devise some system that allows for the benefits of all three?\par
+\newthought{In principle, no. }It would be a herculean task to reduce programming a complex model of a sophisticated system with the accuracy necessary for a good procedural model, while making that programming task significantly simpler. However, if a system was devised that could encapsulate multiple different models in one, that system might provide the benefits simply by generating all of the models needed to extract information in an interactive, glanceable, sophisticated or detailed way. \par
+\newthought{Therefore, it would be of benefit }to explore solutions that generate multiple models from one base set of information. This way, we could build mathematically analysable models that have similarities and benefits against attack trees, while also keeping the interactivity of an actual program. Because a program contains more information than a regular model, it would make sense to produce one program that can be modified to create a petri net also. \par
+How does one go about creating a petri net from a program? The two actually have some similarities, as will be seen.
+
+\newpage
+\section{The procedural model}
+\subsection{Procedural Models to Petri Nets}
+\newthought{A function definition }in a program is effectively a description of how the state of a program changes in a regular imperative program\sidenote{\url{https://en.wikipedia.org/wiki/Imperative_programming}}. Therefore, a petri net's transitions are denoted by the program's function definitions. Furthermore, the states of the program are the results of the program before and after a transition's execution, which would be the execution of a function. Therefore, function calls denote the movement from one state to another, where the source state is that at the time of the function call and the target state is that defined by the transformation a function would make on a dataset. \par
+In this way, we can use a programmatic description of a safety critical system to generate a graph of source and target states through transitions -- a petri net -- that can also be executed and maintained as systems change. \par
+
+\subsection{Creating a procedural model}
+\newthought{The models created }were created in Python, as Python is designed for ease of reading and self-documentation. This makes code easier to read, making models easier to make and easier to maintain by other people. In addition, Python provides some useful libraries that we exploit in the tool provided for parsing a python program as an Abstract Syntax Tree, which we use to construct a petri net. \par
+\newthought{The layout of }the models is to be a library of functions, where each function is an action that might occur in a system at a level of detail of the modeller's discretion. Each function consists only of function calls to other functions in the model, and alterations to the model's resources. 
+
+\subsection{Creating a petri net from a procedural model}
+\newthought{The petri nets }are made by parsing an \emph{Abstract Syntax Tree}, a description of a program's grammar, that allows us to analyse a program's function definitions and isolate function calls so as to see how states change through a system's execution. The models themselves are composed of function definitions, which either modify some collective resource or make calls to functions defined in the model, meaning that this abstract syntax tree is all that is required to create an adequate petri net, once fully analysed. \par
+\newthought{A library is provided }that contains three classes, one of which is intended to be used by an end user: this class collects filenames of models, parses their contents into an abstract syntax tree, and walks that tree, analysing the program that's been written. In doing this, it provides a petri net of the amalgamated petri nets of each source file. That is to say, the graphs produced by each file are combined to produce one complete petri net from a multiple file model. \par
+The product of this is a dictionary containing an adjacency list, a representation of a directed graph. Each instance of movement from one state to another through a given transition is recorded, so that the chances of moving from one state to another is preserved. Doing this allows the user of the model to weight the edges of the graph by probability if this information is useful for their end goal. \par
+
+\newthought{The procedure for }the construction of the petri net is a fairly simple one, and makes heavy use of the Python abstract syntax tree. However, this proof of concept does mean that the process can be used in other languages to make more complex models, or modified to create petri nets from existing procedural models with internal structures that mirror this modelling technique. 
+
+
+\newpage
+\section{Example uses of the technique}
+\subsection{Smart Grids and current limits}
+\newthought{Smart grids employ }some metering to ensure that the current generated doesn't cause a blackout by overloading some circuit. To do this, they set four limits that the current ideally lies between:
+\begin{enumerate}
+    \item \marginnote{Information given by an ex-employee of a smart grid software writing company, hence the lack of citation.}A \emph{base} current that it shouldn't fall below
+    \item A \emph{reset} current that the current will eventually reach. Upon reaching this level, the grid will lessen energy creation until such time as the current reaches \emph{base} again.
+    \item A \emph{local trip}, upon reaching which the grid will turn off the local area that has reached this current.
+    \item A \emph{global trip}, upon reaching which the whole grid will turn off and reset, regardless of the area which has generated this current. If the system reaches this, something is seriously wrong. 
+\end{enumerate}\par
+This system makes for a simple example of how a basic procedural model could be made for the system, where a function is called to reset or alter the state of the grid if the current detected reaches a certain limit, which can be easily turned into a simple petri net. \par
+While more complex examples could be given, this basic set of rules exemplifies the benefit of the procedural-to-petri-net system: the procedural model is small and simple, and can be used as a module in a more complex and detailed model. The petri net generated has seven states: current being at each of the four limits, or between two (if they are in the order above).\par
+
+\subsection{Limitations}
+\newthought{This modelling system }\marginnote{Constructed models ultimately can be easy to validate, and hard to verify.}falls prey to one of the problems identified earlier regarding the constructive models: without any insertion of randomness, it is impossible to tell what happens if something unpredicted influences the system and some state is introduced that does not exist in the constructed model. One solution to this would be to mutate the code, a standard practice in software engineering to verify tests, 
+
+\newpage
+\section{Tool developed}
+\marginnote{The code for the tool developed is below.}
+%\begin{minted}
+%[
+%frame=lines,
+%framesep=2mm,
+%baselinestretch=1.2,
+%bgcolor=LightGray,
+%fontsize=\footnotesize,
+%linenos
+%]
+%{python}
+import ast
+
+class DirectedGraph():
+    def __init__(self):
+        self.nodes = {}
+
+    def addEdge(self, source, target):
+        if source not in self.nodes.keys():
+            self.nodes[source] = []
+        self.nodes[source].append(target)
+
+class PetriVisitor(ast.NodeVisitor):
+    def __init__(self):
+        ast.NodeVisitor.__init__(self)
+        self.petri = DirectedGraph()
+        self.current_function = None
+        self.source_files = []
+
+    def visit_FunctionDef(self, node):
+        self.current_function = node.name
+        self.generic_visit(node)
+        self.current_function = None
+
+    def visit_Call(self, node):
+        if self.current_function is not None: self.petri.addEdge(self.current_function, node.func.id)
+        self.generic_visit(node)
+
+class PetriWalker():
+    def __init__(self):
+        self.nets = []
+        self.sources = []
+
+    def addSource(self, source):
+        self.sources.append(source)
+
+    def visit(self):
+        for sourceFile in self.sources:
+            with open(sourceFile) as source:
+                pw = PetriVisitor()
+                source_lines = "\n".join(source.readlines())
+                source_ast = ast.parse(source_lines, sourceFile, "exec")
+                pw.visit(source_ast)
+                self.nets.append(pw.petri.nodes)
+
+    def getNet(self):
+        net = {}
+        for fileNet in self.nets:
+            for key in fileNet.keys():
+                if key not in net.keys():
+                    net[key] = []
+                valueList = fileNet[key]
+                for value in valueList:
+                    net[key].append(value)
+        return net
+%\end{minted}
+
+\newpage
+\marginnote{One might use it this way:}
+%\begin{minted}{python}
+import unittest
+import walker
+
+class WalkerTest(unittest.TestCase):
+    def TestWalkerNet(self):
+        netWalker = walker.PetriWalker()
+        netWalker.addSource("model.py")
+        netWalker.visit()
+        self.assertIsNotNone(netWalker.getNet(), "If you see this, I haven't returned a graph!")
+%\end{minted}
+
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.2,
+bgcolor=LightGray,
+fontsize=\footnotesize,
+linenos
+]
+{python}
+import numpy as np
+ 
+def incmatrix(genl1,genl2):
+    m = len(genl1)
+    n = len(genl2)
+    M = None #to become the incidence matrix
+    VT = np.zeros((n*m,1), int)  #dummy variable
+ 
+    #compute the bitwise xor matrix
+    M1 = bitxormatrix(genl1)
+    M2 = np.triu(bitxormatrix(genl2),1) 
+ 
+    for i in range(m-1):
+        for j in range(i+1, m):
+            [r,c] = np.where(M2 == M1[i,j])
+            for k in range(len(r)):
+                VT[(i)*n + r[k]] = 1;
+                VT[(i)*n + c[k]] = 1;
+                VT[(j)*n + r[k]] = 1;
+                VT[(j)*n + c[k]] = 1;
+ 
+                if M is None:
+                    M = np.copy(VT)
+                else:
+                    M = np.concatenate((M, VT), 1)
+ 
+                VT = np.zeros((n*m,1), int)
+ 
+    return M
+\end{minted}
+
+\newpage
+\marginnote{A comically simple example model would look like this:}
+%\begin{minted}{python}
+resources = []
+
+def test():
+    test()
+    test()
+    resources["test"] = 1
+%\end{minted}
+
+\newpage
+\bibliography{library}{}
+\bibliographystyle{plain}
+
+\end{document}
